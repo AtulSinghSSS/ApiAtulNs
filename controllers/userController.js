@@ -15,6 +15,7 @@ const userRegister = async (req, res) => {
         // }
 
         
+
         const hashPassword = await bcrypt.hash(password, 10);
         //const image = req.files.image ? 'images/' + req.files.image.filename : '';
         const image = req.file ? 'images/' + req.file.filename : ''
