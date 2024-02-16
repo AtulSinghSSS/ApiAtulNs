@@ -1,19 +1,20 @@
-//import express from 'express';
-
-
 const express = require('express');
 const path = require('path');
 const multer = require('multer');
-const userController = require('../controllers/userController');
-
 const router = express.Router();
 router.use(express.json());
-
-//const router=express();
+const userController = require('../controllers/userController');
+const {registerValidator} = require('../helpers/validation');
 
 
 const storage=multer.diskStorage({
     destination:function(req,file,cb){
+
+        if (file.mimetype ==='image/jpeg' || file.mimetype ==='image/png') {
+            cb(null,path.join(__dirname,'../public/images'));
+        }
+
+
     cb(null,path.join(__dirname,'../public/images'));
     },
     filename:function(req,file,cb){
@@ -22,10 +23,21 @@ const storage=multer.diskStorage({
     }
 });
 
-const upload=multer({storage:storage});
 
+const fileFilter=(req,file,cb)=>{
+    if (file.mimetype ==='image/jpeg' || file.mimetype ==='image/png') {
+        cb(null,true);
+    }else{
+        cb(null,false);
+    }
 
+}
 
-router.post('/register',upload.single('image'),userController.userRegister);
+const upload=multer({
+    storage:storage,
+    fileFilter:fileFilter
+});
+
+router.post('/register',upload.single('image'),registerValidator,userController.userRegister);
 
 module.exports=router;
