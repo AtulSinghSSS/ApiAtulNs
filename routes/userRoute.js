@@ -4,7 +4,9 @@ const multer = require('multer');
 const router = express.Router();
 router.use(express.json());
 const userController = require('../controllers/userController');
-const {registerValidator} = require('../helpers/validation');
+const {registerValidator,loginValidator} = require('../helpers/validation');
+
+const auth=require('../middlerare/auth');
 
 
 const storage=multer.diskStorage({
@@ -39,5 +41,9 @@ const upload=multer({
 });
 
 router.post('/register',upload.single('image'),registerValidator,userController.userRegister);
+router.post('/login',loginValidator,userController.userLogin);
+
+// authenticated routes
+router.get('/profile',auth,userController.userProfile);
 
 module.exports=router;

@@ -17,3 +17,10 @@ exports.registerValidator = [
         }
     }).withMessage('Please upload an image in JPEG or PNG format')
 ];
+
+exports.loginValidator = [
+    check('email', 'Please include a valid email').isEmail().normalizeEmail({ gmail_remove_dots: true }),
+    check('password', 'Password must be at least 6 characters long and contain at least one uppercase letter, one lowercase letter, one number, and one special character')
+        .isStrongPassword({ minLength: 6, minUppercase: 1, minLowercase: 1, minNumbers: 1 }),
+
+];

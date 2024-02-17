@@ -1,10 +1,8 @@
 const userModel = require('../models/userModel');
 const bcrypt = require('bcrypt');
-
-
 const mailer = require('../helpers/mailer');
-
 const { validationResult } = require('express-validator');
+const jwt = require('jsonwebtoken')
 
 
 const userRegister = async (req, res) => {
@@ -19,14 +17,14 @@ const userRegister = async (req, res) => {
         }
         const { name, email, mobile, password } = req.body;
 
-         const isExists = await userModel.findOne({ email });
+        const isExists = await userModel.findOne({ email });
 
-         if (isExists) {
+        if (isExists) {
             return res.status(400).json({
-                 success: false,
-                 msg: "Email Already Exists!"
-             });
-         }
+                success: false,
+                msg: "Email Already Exists!"
+            });
+        }
 
         const hashPassword = await bcrypt.hash(password, 10);
         const image = req.file ? 'images/' + req.file.filename : ''
@@ -70,11 +68,11 @@ const mailVerification = async (req, res) => {
         }
         const userData = await userModel.findOne({ _id: req.query.id });
         if (userData) {
-            console.log("1s"+userData.is_verified )
+            console.log("1s" + userData.is_verified)
             if (userData.is_verified == 1) {
                 return res.render('mail-verification', { message: 'Your mail already verified!' })
             }
-            await userModel.findByIdAndUpdate({_id: req.query.id },
+            await userModel.findByIdAndUpdate({ _id: req.query.id },
                 {
                     $set: { is_verified: 1 }
                 });
@@ -87,9 +85,98 @@ const mailVerification = async (req, res) => {
         console.log(error.message);
         return res.render('404');
     }
+};
+
+const genrateAccessToken = async (user) => {
+    const token=jwt.sign(user,process.env.ACCESS_TOKEN_SECRET,{expiresIn:"2h"});
+    return token;
+};
+
+const userLogin = async (req, res) => {
+    try {
+
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({
+                success: false,
+                msg: "Errors",
+                errors: errors.array()
+            });
+        }
+
+        const { email, password } = req.body;
+        const userData = await userModel.findOne({ email });
+        if (!userData) {
+            return res.status(401).json({
+                success: false,
+                msg: 'Email and password is Incorrect'
+            });
+
+        }
+        const passwordMatch = await bcrypt.compare(password, userData.password);
+        if (!passwordMatch) {
+            return res.status(401).json({
+                success: false,
+                msg: 'Email and password is Incorrect'
+            });
+
+        }
+
+        if (userData.is_verified == 0) {
+            return res.status(401).json({
+                success: false,
+                msg: 'Plese Verify your Accont!'
+            });
+
+        }
+
+        const accessToken=await genrateAccessToken({user:userData});
+
+        return res.status(200).json({
+            success: true,
+            msg: 'Login Successfully!',
+            user:userData,
+            accessToken:accessToken,
+            tokenType:'Bearer'
+        });
+
+        // console.log("adjshdfjh"+userData);
+
+    } catch (error) {
+        return res.status(400).json({
+            success: false,
+            msg: error.message
+        });
+
+    }
+
+};
+
+const userProfile = async (req, res) => {
+    try {
+
+       const userData=req.user.user;
+
+        return res.status(200).json({
+            success: true,
+            msg:'User Profile Data!',
+            data:userData
+        });
+     
+
+    } catch (error) {
+        return res.status(400).json({
+            success: false,
+            msg: error.message
+        });
+
+    }
+
 }
 
 module.exports = {
     userRegister: userRegister,
     mailVerification: mailVerification,
+    userLogin: userLogin,
+    userProfile:userProfile
 };
