@@ -1,9 +1,11 @@
-const model = require('../models/userModel');
+const userModel = require('../models/userModel');
 const bcrypt = require('bcrypt');
+
 
 const mailer = require('../helpers/mailer');
 
-const { validationResult } = require('express-validator')
+const { validationResult } = require('express-validator');
+
 
 const userRegister = async (req, res) => {
     try {
@@ -17,14 +19,14 @@ const userRegister = async (req, res) => {
         }
         const { name, email, mobile, password } = req.body;
 
-        //  const isExists = await model.findOne({ email });
+         const isExists = await userModel.findOne({ email });
 
-        //  if (isExists) {
-        //     return res.status(400).json({
-        //          success: false,
-        //          msg: "Email Already Exists!"
-        //      });
-        //  }
+         if (isExists) {
+            return res.status(400).json({
+                 success: false,
+                 msg: "Email Already Exists!"
+             });
+         }
 
         const hashPassword = await bcrypt.hash(password, 10);
         const image = req.file ? 'images/' + req.file.filename : ''
@@ -33,7 +35,7 @@ const userRegister = async (req, res) => {
         // const imagePath = 'images/' + req.file.filename; // Assuming you've saved the image in the 'images/' folder
 
         // const imageUrl = baseUrl + '/' + imagePath; // Construct the complete image URL
-        const user = new model({
+        const user = new userModel({
             name,
             email,
             mobile,
@@ -45,7 +47,7 @@ const userRegister = async (req, res) => {
         const link = 'http://localhost:3000/mail-verification?id=' + userData._id;
         const msg = `<p>Hi, ${name}, please <a href="${link}">verify</a> your email</p>`;
 
-        //mailer.sendMail(email, 'mail Verification', msg);
+        mailer.sendMail(email, 'mail Verification', msg);
 
         return res.status(200).json({
             success: true,
@@ -60,6 +62,34 @@ const userRegister = async (req, res) => {
     }
 };
 
+const mailVerification = async (req, res) => {
+    try {
+        if (req.query.id == undefined) {
+            console.log("1")
+            return res.render('404')
+        }
+        const userData = await userModel.findOne({ _id: req.query.id });
+        if (userData) {
+            console.log("1s"+userData.is_verified )
+            if (userData.is_verified == 1) {
+                return res.render('mail-verification', { message: 'Your mail already verified!' })
+            }
+            await userModel.findByIdAndUpdate({_id: req.query.id },
+                {
+                    $set: { is_verified: 1 }
+                });
+            return res.render('mail-verification', { message: 'mail has been verified successfully!' });
+        } else {
+            res.render('mail-verification', { message: 'User Not Found' })
+        }
+
+    } catch (error) {
+        console.log(error.message);
+        return res.render('404');
+    }
+}
+
 module.exports = {
-    userRegister: userRegister
+    userRegister: userRegister,
+    mailVerification: mailVerification,
 };
