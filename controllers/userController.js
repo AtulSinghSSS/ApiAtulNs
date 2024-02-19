@@ -1,4 +1,6 @@
 const userModel = require('../models/userModel');
+const blackListModel = require('../models/blackListModel');
+const mailOtpModel = require('../models/mailOtpModel');
 const bcrypt = require('bcrypt');
 const mailer = require('../helpers/mailer');
 const { validationResult } = require('express-validator');
@@ -63,7 +65,6 @@ const userRegister = async (req, res) => {
 const mailVerification = async (req, res) => {
     try {
         if (req.query.id == undefined) {
-            console.log("1")
             return res.render('404')
         }
         const userData = await userModel.findOne({ _id: req.query.id });
@@ -88,7 +89,12 @@ const mailVerification = async (req, res) => {
 };
 
 const genrateAccessToken = async (user) => {
-    const token=jwt.sign(user,process.env.ACCESS_TOKEN_SECRET,{expiresIn:"2h"});
+    const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "2h" });
+    return token;
+};
+
+const genrateRefreshToken = async (user) => {
+    const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "4h" });
     return token;
 };
 
@@ -130,14 +136,16 @@ const userLogin = async (req, res) => {
 
         }
 
-        const accessToken=await genrateAccessToken({user:userData});
+        const accessToken = await genrateAccessToken({ user: userData });
+        const refreshToken = await genrateRefreshToken({ user: userData });
 
         return res.status(200).json({
             success: true,
             msg: 'Login Successfully!',
-            user:userData,
-            accessToken:accessToken,
-            tokenType:'Bearer'
+            user: userData,
+            accessToken: accessToken,
+            refreshToken: refreshToken,
+            tokenType: 'Bearer'
         });
 
         // console.log("adjshdfjh"+userData);
@@ -155,14 +163,139 @@ const userLogin = async (req, res) => {
 const userProfile = async (req, res) => {
     try {
 
-       const userData=req.user.user;
+        const userData = req.user.user;
+        return res.status(200).json({
+            success: true,
+            msg: 'User Profile Data!',
+            data: userData
+        });
+
+
+    } catch (error) {
+        return res.status(400).json({
+            success: false,
+            msg: error.message
+        });
+
+    }
+
+}
+
+const refreshToken = async (req, res) => {
+    try {
+
+        const userId = req.user.user._id;
+        const userData = await userModel.findOne({ _id: userId });
+
+        const accessToken = await genrateAccessToken({ user: userData });
+        const refreshToken = await genrateRefreshToken({ user: userData });
+
+
 
         return res.status(200).json({
             success: true,
-            msg:'User Profile Data!',
-            data:userData
+            msg: 'Token Refreshed!',
+            accessToken: accessToken,
+            refreshToken: refreshToken
         });
-     
+
+
+    } catch (error) {
+        return res.status(400).json({
+            success: false,
+            msg: error.message
+        });
+
+    }
+
+}
+
+const logOut = async (req, res) => {
+    try {
+
+
+        const token = req.body.token || req.query.token || req.headers["authorization"];
+        const bearer = token.split(' ');
+        const bearerToken = bearer[1];
+
+
+        const newBlackList = new blackListModel({
+            token: bearerToken
+        });
+        await newBlackList.save();
+
+        res.setHeader('Clear-Site-Data', '"cookies","storage"');
+
+        return res.status(200).json({
+            success: true,
+            msg: 'You are logged out!',
+
+        });
+
+
+    } catch (error) {
+        return res.status(400).json({
+            success: false,
+            msg: error.message
+        });
+
+    }
+
+}
+
+const genrateRandom4Digit = async () => {
+    return Math.floor(1000 + Math.random() * 9000);
+};
+
+const sendEmailOtp = async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({
+                success: false,
+                msg: 'Errors',
+                errors: errors.array()
+            });
+        }
+
+        const { email } = req.body;
+        const userData = await userModel.findOne({ email });
+
+        console.log(userData)
+
+
+        if (!userData) {
+            return res.status(400).json({
+                success: false,
+                msg: "Email doesn't exists!",
+            });
+        }
+
+        if (userData.is_verified == 1) {
+            return res.status(401).json({
+                success: false,
+                msg: userData.email + 'mail is already verified!'
+            });
+
+        }
+        const g_otp = await genrateRandom4Digit();
+
+        console.log("atulsingh   "+userData._id)
+        const enter_otp=new mailOtpModel({
+            user_id:userData._id,
+            otp:g_otp
+        })
+
+         await enter_otp.save();
+
+        const msg = '<p>Hi <b>' + userData.name + '</b>,<h4> '+g_otp+ '</h4></p>';
+        mailer.sendMail(userData.email, 'mailOtp Verification', msg);
+
+        return res.status(200).json({
+            success: false,
+            msg: 'Opt has been sent to your mail, please check!',
+        });
+
 
     } catch (error) {
         return res.status(400).json({
@@ -178,5 +311,8 @@ module.exports = {
     userRegister: userRegister,
     mailVerification: mailVerification,
     userLogin: userLogin,
-    userProfile:userProfile
+    userProfile: userProfile,
+    refreshToken: refreshToken,
+    logOut: logOut,
+    sendEmailOtp: sendEmailOtp
 };

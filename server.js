@@ -17,7 +17,7 @@ app.use('/api', userRoute);
 
 app.use('/', authRoute);
 
-mongoose.connect('mongodb://127.0.0.1:27017/restful-auth-api')
+mongoose.connect('mongodb+srv://atulsingh28071999:Atul221@cluster2.xelkrjz.mongodb.net/?retryWrites=true&w=majority')
     .then(() => {
         console.log("MongoDB connected successfully");
         app.listen(port, () => {

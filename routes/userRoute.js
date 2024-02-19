@@ -4,7 +4,7 @@ const multer = require('multer');
 const router = express.Router();
 router.use(express.json());
 const userController = require('../controllers/userController');
-const {registerValidator,loginValidator} = require('../helpers/validation');
+const {registerValidator,loginValidator,otpMailValidator} = require('../helpers/validation');
 
 const auth=require('../middlerare/auth');
 
@@ -45,5 +45,8 @@ router.post('/login',loginValidator,userController.userLogin);
 
 // authenticated routes
 router.get('/profile',auth,userController.userProfile);
+router.get('/refreshToken',auth,userController.refreshToken);
+router.get('/logOut',auth,userController.logOut);
+router.post('/sendEmailOtp',otpMailValidator,userController.sendEmailOtp);
 
 module.exports=router;

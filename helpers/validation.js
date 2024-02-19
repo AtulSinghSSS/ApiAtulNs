@@ -24,3 +24,9 @@ exports.loginValidator = [
         .isStrongPassword({ minLength: 6, minUppercase: 1, minLowercase: 1, minNumbers: 1 }),
 
 ];
+
+exports.otpMailValidator = [
+    check('email', 'Please Enter a valid email').isEmail().normalizeEmail({ gmail_remove_dots: true }),
+  
+
+];

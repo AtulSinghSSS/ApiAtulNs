@@ -21,7 +21,7 @@ const userSchema=new mongoose.Schema({
     },
     is_verified:{
         type:Number,
-        debugger:0 //1 verified
+        default:0 //1 verified
     },
 
     image:{
