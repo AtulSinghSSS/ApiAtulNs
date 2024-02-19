@@ -17,7 +17,11 @@ app.use('/api', userRoute);
 
 app.use('/', authRoute);
 
-mongoose.connect('mongodb+srv://atulsingh28071999:Atul221@cluster2.xelkrjz.mongodb.net/?retryWrites=true&w=majority')
+mongoose.connect('mongodb+srv://atul:Atul123@prakash.bvaf4xu.mongodb.net/?retryWrites=true&w=majority', {
+  dbName: 'test',
+  retryWrites: true,
+  w:'majority'
+})
     .then(() => {
         console.log("MongoDB connected successfully");
         app.listen(port, () => {

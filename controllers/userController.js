@@ -97,7 +97,7 @@ const genrateRefreshToken = async (user) => {
     const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "4h" });
     return token;
 };
-
+//atul
 const userLogin = async (req, res) => {
     try {
 
