@@ -4,7 +4,10 @@ const mailOtpModel = require('../models/mailOtpModel');
 const bcrypt = require('bcrypt');
 const mailer = require('../helpers/mailer');
 const { validationResult } = require('express-validator');
-const jwt = require('jsonwebtoken')
+const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const encryptionKey = 'your-encryption-key-here-atulsingh';
+const cipher = crypto.createCipher('aes-256-cbc', encryptionKey);
 
 
 const userRegister = async (req, res) => {
@@ -97,7 +100,6 @@ const genrateRefreshToken = async (user) => {
     const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: "4h" });
     return token;
 };
-//atul
 const userLogin = async (req, res) => {
     try {
 
@@ -162,14 +164,28 @@ const userLogin = async (req, res) => {
 
 const userProfile = async (req, res) => {
     try {
-
+        const encription=req.headers.encription;
         const userData = req.user.user;
-        return res.status(200).json({
-            success: true,
-            msg: 'User Profile Data!',
-            data: userData
-        });
-
+        const userDataString = JSON.stringify(userData);
+      
+        if(encription==1){
+            return res.status(200).json({
+                success: true,
+                msg: 'User Profile Data!',
+                data: userData
+            });
+        }
+    
+        let encryptedUserData = cipher.update(userDataString, 'utf8', 'hex');
+        encryptedUserData += cipher.final('hex');
+        // Send the encrypted user data in the response
+        if(encription==0){
+            return res.status(200).json({
+                success: true,
+                msg: 'Encrypted User Profile Data!',
+                data: encryptedUserData
+            });
+        }
 
     } catch (error) {
         return res.status(400).json({
@@ -307,6 +323,22 @@ const sendEmailOtp = async (req, res) => {
 
 }
 
+const dashBoard = async (req, res) => {
+    try {
+      
+        
+
+
+    } catch (error) {
+        return res.status(400).json({
+            success: false,
+            msg: error.message
+        });
+
+    }
+
+}
+
 module.exports = {
     userRegister: userRegister,
     mailVerification: mailVerification,
@@ -314,5 +346,6 @@ module.exports = {
     userProfile: userProfile,
     refreshToken: refreshToken,
     logOut: logOut,
-    sendEmailOtp: sendEmailOtp
+    sendEmailOtp: sendEmailOtp,
+    dashBoard:dashBoard,
 };

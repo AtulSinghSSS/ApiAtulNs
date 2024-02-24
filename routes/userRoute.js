@@ -47,6 +47,6 @@ router.post('/login',loginValidator,userController.userLogin);
 router.get('/profile',auth,userController.userProfile);
 router.get('/refreshToken',auth,userController.refreshToken);
 router.get('/logOut',auth,userController.logOut);
-router.post('/sendEmailOtp',otpMailValidator,userController.sendEmailOtp);
+router.get('/dashBoard',userController.dashBoard);
 
 module.exports=router;
