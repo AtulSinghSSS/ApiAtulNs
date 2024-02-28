@@ -5,9 +5,7 @@ const bcrypt = require('bcrypt');
 const mailer = require('../helpers/mailer');
 const { validationResult } = require('express-validator');
 const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
-const encryptionKey = 'your-encryption-key-here-atulsingh';
-const cipher = crypto.createCipher('aes-256-cbc', encryptionKey);
+
 
 
 const userRegister = async (req, res) => {
@@ -164,22 +162,26 @@ const userLogin = async (req, res) => {
 
 const userProfile = async (req, res) => {
     try {
-        const encription=req.headers.encription;
+
+        const crypto = require('crypto');
+        const encryptionKey = 'your-encryption-key-here-atulsingh';
+        const cipher = crypto.createCipher('aes-256-cbc', encryptionKey);
+        const encription = req.headers.encription;
         const userData = req.user.user;
         const userDataString = JSON.stringify(userData);
-      
-        if(encription==1){
+
+        if (encription == 1) {
             return res.status(200).json({
                 success: true,
                 msg: 'User Profile Data!',
                 data: userData
             });
         }
-    
+
         let encryptedUserData = cipher.update(userDataString, 'utf8', 'hex');
         encryptedUserData += cipher.final('hex');
         // Send the encrypted user data in the response
-        if(encription==0){
+        if (encription == 0) {
             return res.status(200).json({
                 success: true,
                 msg: 'Encrypted User Profile Data!',
@@ -296,15 +298,15 @@ const sendEmailOtp = async (req, res) => {
         }
         const g_otp = await genrateRandom4Digit();
 
-        console.log("atulsingh   "+userData._id)
-        const enter_otp=new mailOtpModel({
-            user_id:userData._id,
-            otp:g_otp
+        console.log("atulsingh   " + userData._id)
+        const enter_otp = new mailOtpModel({
+            user_id: userData._id,
+            otp: g_otp
         })
 
-         await enter_otp.save();
+        await enter_otp.save();
 
-        const msg = '<p>Hi <b>' + userData.name + '</b>,<h4> '+g_otp+ '</h4></p>';
+        const msg = '<p>Hi <b>' + userData.name + '</b>,<h4> ' + g_otp + '</h4></p>';
         mailer.sendMail(userData.email, 'mailOtp Verification', msg);
 
         return res.status(200).json({
@@ -325,8 +327,8 @@ const sendEmailOtp = async (req, res) => {
 
 const dashBoard = async (req, res) => {
     try {
-      
-        
+
+
 
 
     } catch (error) {
@@ -348,5 +350,5 @@ module.exports = {
     refreshToken: refreshToken,
     logOut: logOut,
     sendEmailOtp: sendEmailOtp,
-    dashBoard:dashBoard,
+    dashBoard: dashBoard,
 };
