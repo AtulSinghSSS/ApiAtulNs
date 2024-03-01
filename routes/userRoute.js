@@ -47,6 +47,7 @@ router.post('/login',loginValidator,userController.userLogin);
 router.get('/profile',auth,userController.userProfile);
 router.get('/refreshToken',auth,userController.refreshToken);
 router.get('/logOut',auth,userController.logOut);
-router.get('/dashBoard',userController.dashBoard);
+router.post('/dashBoard',userController.dashBoard);
+router.get('/getDashBoard',userController.getDashBoard);
 
 module.exports=router;

@@ -1,6 +1,7 @@
 const userModel = require('../models/userModel');
 const blackListModel = require('../models/blackListModel');
 const mailOtpModel = require('../models/mailOtpModel');
+const cafeDashBoardModel = require('../models/cafeDashBoardModel');
 const bcrypt = require('bcrypt');
 const mailer = require('../helpers/mailer');
 const { validationResult } = require('express-validator');
@@ -327,9 +328,19 @@ const sendEmailOtp = async (req, res) => {
 
 const dashBoard = async (req, res) => {
     try {
+        const { banner, category, recommend } = req.body;
+        const user = new cafeDashBoardModel({
+            banner,
+            category,
+            recommend,
+        });
 
-
-
+        const userData = await user.save();
+        return res.status(200).json({
+            success: true,
+            msg: "data Insert Successfully",
+            data: userData
+        });
 
     } catch (error) {
         return res.status(400).json({
@@ -340,7 +351,33 @@ const dashBoard = async (req, res) => {
     }
 
 }
-//
+
+const getDashBoard = async (req, res) => {
+    try {
+        const { banner, category, recommend } = await cafeDashBoardModel.findOne();
+        const allBannerItems = banner.map(item => ({ price: item.price, itemName: item.itemName }));
+        const allCategoryItems = category.map(item => ({ price: item.price, itemName: item.itemName }));
+        const allRecommendItems = recommend.map(item => ({ price: item.price, itemName: item.itemName }));
+        return res.status(200).json({
+            success: true,
+            msg: "Data fetch Successfully",
+            data: [{
+                banner: allBannerItems,
+                category: allCategoryItems,
+                recommend: allRecommendItems
+            }]
+
+        });
+
+    } catch (error) {
+        return res.status(400).json({
+            success: false,
+            msg: error.message
+        });
+
+    }
+
+}
 
 module.exports = {
     userRegister: userRegister,
@@ -351,4 +388,5 @@ module.exports = {
     logOut: logOut,
     sendEmailOtp: sendEmailOtp,
     dashBoard: dashBoard,
+    getDashBoard: getDashBoard,
 };
