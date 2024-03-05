@@ -49,5 +49,6 @@ router.get('/refreshToken',auth,userController.refreshToken);
 router.get('/logOut',auth,userController.logOut);
 router.post('/dashBoard',userController.dashBoard);
 router.get('/getDashBoard',userController.getDashBoard);
+router.get('/paymentGetWay',userController.paymentGetWay);
 
 module.exports=router;

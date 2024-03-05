@@ -6,6 +6,7 @@ const bcrypt = require('bcrypt');
 const mailer = require('../helpers/mailer');
 const { validationResult } = require('express-validator');
 const jwt = require('jsonwebtoken');
+const Razorpay = require('razorpay');
 
 
 
@@ -140,13 +141,20 @@ const userLogin = async (req, res) => {
         const accessToken = await genrateAccessToken({ user: userData });
         const refreshToken = await genrateRefreshToken({ user: userData });
 
+    
+    
+
         return res.status(200).json({
             success: true,
             msg: 'Login Successfully!',
-            user: userData,
-            accessToken: accessToken,
-            refreshToken: refreshToken,
-            tokenType: 'Bearer'
+            data: {
+                   userData,
+                   accessToken: accessToken, 
+                   refreshToken: refreshToken,
+                   tokenType: 'Bearer'
+                }
+
+
         });
 
         // console.log("adjshdfjh"+userData);
@@ -328,19 +336,38 @@ const sendEmailOtp = async (req, res) => {
 
 const dashBoard = async (req, res) => {
     try {
+      
         const { banner, category, recommend } = req.body;
-        const user = new cafeDashBoardModel({
-            banner,
-            category,
-            recommend,
-        });
 
-        const userData = await user.save();
-        return res.status(200).json({
+        // Check if the document already exists
+        const existingData = await cafeDashBoardModel.findOne({ /* your query criteria */ });
+        
+        if (existingData) {
+          // Document exists, update it
+          existingData.banner = banner;
+          existingData.category = category;
+          existingData.recommend = recommend;
+          
+          const updatedData = await existingData.save();
+          
+          return res.status(200).json({
             success: true,
-            msg: "data Insert Successfully",
+            msg: "Data updated successfully",
+            data: updatedData
+          });
+        } else {
+          // Document doesn't exist, insert it
+          const newData = new cafeDashBoardModel({ banner, category, recommend });
+          
+          const userData = await newData.save();
+          
+          return res.status(200).json({
+            success: true,
+            msg: "Data inserted successfully",
             data: userData
-        });
+          });
+        }
+        
 
     } catch (error) {
         return res.status(400).json({
@@ -355,9 +382,10 @@ const dashBoard = async (req, res) => {
 const getDashBoard = async (req, res) => {
     try {
         const { banner, category, recommend } = await cafeDashBoardModel.findOne();
-        const allBannerItems = banner.map(item => ({ price: item.price, itemName: item.itemName }));
-        const allCategoryItems = category.map(item => ({ price: item.price, itemName: item.itemName }));
-        const allRecommendItems = recommend.map(item => ({ price: item.price, itemName: item.itemName }));
+        const allBannerItems = banner.map(item => ({ price: item.price, itemName: item.itemName,image:item.image })).flat();
+        const allCategoryItems = category.map(item => ({ price: item.price, itemName: item.itemName,image:item.image })).flat();
+        const allRecommendItems = recommend.map(item => ({ price: item.price, itemName: item.itemName,image:item.image })).flat();
+
         return res.status(200).json({
             success: true,
             msg: "Data fetch Successfully",
@@ -379,6 +407,37 @@ const getDashBoard = async (req, res) => {
 
 }
 
+const paymentGetWay = async (req, res) => {
+    try {
+        const razorpay = new Razorpay({
+            key_id: process.env.KEYId,
+            key_secret: process.env.KEYSECRET
+        });
+
+        const order = await razorpay.orders.create({
+            amount: 1 * 100, // Razorpay expects amount in paise
+            currency: 'USD',
+            payment_capture: 1 // Auto capture payments
+
+        });
+
+        return res.status(200).json({
+            success: true,
+            msg: error.message,
+            orderid: { order }
+        });
+
+
+    } catch (error) {
+        return res.status(400).json({
+            success: false,
+            msg: error.message
+        });
+
+    }
+
+}
+
 module.exports = {
     userRegister: userRegister,
     mailVerification: mailVerification,
@@ -389,4 +448,5 @@ module.exports = {
     sendEmailOtp: sendEmailOtp,
     dashBoard: dashBoard,
     getDashBoard: getDashBoard,
+    paymentGetWay: paymentGetWay,
 };
