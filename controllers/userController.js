@@ -1,13 +1,13 @@
 const userModel = require('../models/userModel');
 const blackListModel = require('../models/blackListModel');
 const mailOtpModel = require('../models/mailOtpModel');
+const cafeDashBoardModel = require('../models/cafeDashBoardModel');
 const bcrypt = require('bcrypt');
 const mailer = require('../helpers/mailer');
 const { validationResult } = require('express-validator');
 const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
-const encryptionKey = 'your-encryption-key-here-atulsingh';
-const cipher = crypto.createCipher('aes-256-cbc', encryptionKey);
+const Razorpay = require('razorpay');
+
 
 
 const userRegister = async (req, res) => {
@@ -141,13 +141,20 @@ const userLogin = async (req, res) => {
         const accessToken = await genrateAccessToken({ user: userData });
         const refreshToken = await genrateRefreshToken({ user: userData });
 
+    
+    
+
         return res.status(200).json({
             success: true,
             msg: 'Login Successfully!',
-            user: userData,
-            accessToken: accessToken,
-            refreshToken: refreshToken,
-            tokenType: 'Bearer'
+            data: {
+                   userData,
+                   accessToken: accessToken, 
+                   refreshToken: refreshToken,
+                   tokenType: 'Bearer'
+                }
+
+
         });
 
         // console.log("adjshdfjh"+userData);
@@ -164,22 +171,26 @@ const userLogin = async (req, res) => {
 
 const userProfile = async (req, res) => {
     try {
-        const encription=req.headers.encription;
+
+        const crypto = require('crypto');
+        const encryptionKey = 'your-encryption-key-here-atulsingh';
+        const cipher = crypto.createCipher('aes-256-cbc', encryptionKey);
+        const encription = req.headers.encription;
         const userData = req.user.user;
         const userDataString = JSON.stringify(userData);
-      
-        if(encription==1){
+
+        if (encription == 1) {
             return res.status(200).json({
                 success: true,
                 msg: 'User Profile Data!',
                 data: userData
             });
         }
-    
+
         let encryptedUserData = cipher.update(userDataString, 'utf8', 'hex');
         encryptedUserData += cipher.final('hex');
         // Send the encrypted user data in the response
-        if(encription==0){
+        if (encription == 0) {
             return res.status(200).json({
                 success: true,
                 msg: 'Encrypted User Profile Data!',
@@ -296,15 +307,15 @@ const sendEmailOtp = async (req, res) => {
         }
         const g_otp = await genrateRandom4Digit();
 
-        console.log("atulsingh   "+userData._id)
-        const enter_otp=new mailOtpModel({
-            user_id:userData._id,
-            otp:g_otp
+        console.log("atulsingh   " + userData._id)
+        const enter_otp = new mailOtpModel({
+            user_id: userData._id,
+            otp: g_otp
         })
 
-         await enter_otp.save();
+        await enter_otp.save();
 
-        const msg = '<p>Hi <b>' + userData.name + '</b>,<h4> '+g_otp+ '</h4></p>';
+        const msg = '<p>Hi <b>' + userData.name + '</b>,<h4> ' + g_otp + '</h4></p>';
         mailer.sendMail(userData.email, 'mailOtp Verification', msg);
 
         return res.status(200).json({
@@ -326,7 +337,95 @@ const sendEmailOtp = async (req, res) => {
 const dashBoard = async (req, res) => {
     try {
       
+        const { banner, category, recommend } = req.body;
+
+        // Check if the document already exists
+        const existingData = await cafeDashBoardModel.findOne({ /* your query criteria */ });
         
+        if (existingData) {
+          // Document exists, update it
+          existingData.banner = banner;
+          existingData.category = category;
+          existingData.recommend = recommend;
+          
+          const updatedData = await existingData.save();
+          
+          return res.status(200).json({
+            success: true,
+            msg: "Data updated successfully",
+            data: updatedData
+          });
+        } else {
+          // Document doesn't exist, insert it
+          const newData = new cafeDashBoardModel({ banner, category, recommend });
+          
+          const userData = await newData.save();
+          
+          return res.status(200).json({
+            success: true,
+            msg: "Data inserted successfully",
+            data: userData
+          });
+        }
+        
+
+    } catch (error) {
+        return res.status(400).json({
+            success: false,
+            msg: error.message
+        });
+
+    }
+
+}
+
+const getDashBoard = async (req, res) => {
+    try {
+        const { banner, category, recommend } = await cafeDashBoardModel.findOne();
+        const allBannerItems = banner.map(item => ({ price: item.price, itemName: item.itemName,image:item.image })).flat();
+        const allCategoryItems = category.map(item => ({ price: item.price, itemName: item.itemName,image:item.image })).flat();
+        const allRecommendItems = recommend.map(item => ({ price: item.price, itemName: item.itemName,image:item.image })).flat();
+
+        return res.status(200).json({
+            success: true,
+            msg: "Data fetch Successfully",
+            data: [{
+                banner: allBannerItems,
+                category: allCategoryItems,
+                recommend: allRecommendItems
+            }]
+
+        });
+
+    } catch (error) {
+        return res.status(400).json({
+            success: false,
+            msg: error.message
+        });
+
+    }
+
+}
+
+const paymentGetWay = async (req, res) => {
+    try {
+        const razorpay = new Razorpay({
+            key_id: process.env.KEYId,
+            key_secret: process.env.KEYSECRET
+        });
+
+        const order = await razorpay.orders.create({
+            amount: 1 * 100, // Razorpay expects amount in paise
+            currency: 'USD',
+            payment_capture: 1 // Auto capture payments
+
+        });
+
+        return res.status(200).json({
+            success: true,
+            msg: error.message,
+            orderid: { order }
+        });
 
 
     } catch (error) {
@@ -347,5 +446,7 @@ module.exports = {
     refreshToken: refreshToken,
     logOut: logOut,
     sendEmailOtp: sendEmailOtp,
-    dashBoard:dashBoard,
+    dashBoard: dashBoard,
+    getDashBoard: getDashBoard,
+    paymentGetWay: paymentGetWay,
 };
